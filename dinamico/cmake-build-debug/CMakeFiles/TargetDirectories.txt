@@ -1,0 +1,3 @@
+C:/Users/thefo/CLionProjects/dinamico/cmake-build-debug/CMakeFiles/dinamico.dir
+C:/Users/thefo/CLionProjects/dinamico/cmake-build-debug/CMakeFiles/edit_cache.dir
+C:/Users/thefo/CLionProjects/dinamico/cmake-build-debug/CMakeFiles/rebuild_cache.dir

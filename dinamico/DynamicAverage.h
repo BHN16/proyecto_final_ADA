@@ -1,0 +1,8 @@
+#ifndef DINAMICO_DYNAMICAVERAGE_H
+#define DINAMICO_DYNAMICAVERAGE_H
+
+class DynamicAverage {
+
+};
+
+#endif //DINAMICO_DYNAMICAVERAGE_H
