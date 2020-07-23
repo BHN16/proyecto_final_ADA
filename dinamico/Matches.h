@@ -2,6 +2,7 @@
 #include <vector>
 #include <fstream>
 #include <string>
+#include <algorithm>
 
 #include "Image.h"
 #include "Dynamic.h"
@@ -39,12 +40,13 @@ public:
 
     void dynamicSolution() {
         this->dynamic_solution = new Dynamic();
+        int midCase = 23;
         for(int i = 0; i < A_image.matrix.size(); i++) {
             auto response = this->dynamic_solution->dynamicSolution(A_image.weights[i].size()-1, B_image.weights[i].size()-1,&A_image.blocks[i], &B_image.blocks[i] ,&A_image.weights[i], &B_image.weights[i], &A_image.accumulated_weights[i], &B_image.accumulated_weights[i]);
             cout << response << endl;
         }
         for(int i = 0; i < A_image.matrix.size(); i++) {
-            this->transformationProcess((*dynamic_solution->matches)[i],this->A_image.blocks[i], this->B_image.blocks[i]);
+            this->transformationProcess((*dynamic_solution->matches)[i],this->A_image.blocks[i], this->B_image.blocks[i], A_image.matrix[0].size());
         }
     }
 
@@ -57,18 +59,17 @@ public:
     }
 
 
-    void transformationProcess(Helper& mapo, Tuples& A, Tuples& B) {
-        cout << "A: " << A;
-        cout << "B: " << B;
-        int midCase = 20;// future constant for multiple mid matrices
-        vector<Tuples *> pasos;
-        for(auto it = mapo.rbegin(); it != mapo.rend(); ++it) {
-            cout << it->second << endl;
+    void transformationProcess(Helper& mapo, Tuples& A, Tuples& B, int midVectorSize) {
+        int midCase =  7;// future constant for multiple mid matrices
+        vector<vector<int>> midVectors;
+        for (int i = 0; i < midCase; i++) {
+            vector<int> temp(midVectorSize, 0);
+            midVectors.push_back(temp);
         }
+        vector<Tuples *> pasos;
         for(int i=0;i<midCase;i++){
             pasos.push_back(new Tuples);
         }
-
         for(auto it = mapo.rbegin(); it != mapo.rend(); ++it) {
             vector<float> weights;
             float temp_weightA = 0;
@@ -99,43 +100,55 @@ public:
                 }
 
             } else if(it->second[0].first == it->second[1].first) { // DIVISON
+                //cout<<"ENTRO ACA EN DIVISION"<<endl;
                 temp_weightA = A[it->second[0].first].second - A[it->second[0].first].first + 1;
                 for(int i = 0; i < it->second.size(); i++) {
                     int temp = (B[it->second[i].second].second - B[it->second[i].second].first) + 1;
                     weights.push_back(temp);
                     temp_weightB += temp;
                 }
+                //cout<<temp_weightA<< " + "<<temp_weightB<<endl;
 
-                vector<int> FraccionAcumulada;
-                vector<int> PosicionesFinales;
-                vector<int> Fracciones;
-                Fracciones.push_back(0);
-                FraccionAcumulada.push_back(0);
-                PosicionesFinales.push_back(A[it->second[0].first].first);
+                vector<float> Fracciones;
+                vector<float> PosicionesIniciales(weights.size());
+                float matrizMidtams[midCase][weights.size()];
 
-                for(int i=1;i<weights.size();i++){
-                    FraccionAcumulada.push_back(FraccionAcumulada[FraccionAcumulada.size() - 1] + (temp_weightA / temp_weightB) * weights[i - 1]);
-                    Fracciones.push_back((temp_weightA / temp_weightB) * weights[i - 1]);
-                    PosicionesFinales.push_back(A[it->second[0].first].first+FraccionAcumulada[i]);
+                for(int i=0; i<weights.size();i++){
+                    if(i==0){
+                        PosicionesIniciales[i] = A[it->second[0].first].first;
+                    }
+                    else{
+                        PosicionesIniciales[i] = PosicionesIniciales[i-1] + float((weights[i]*(temp_weightA)) / float(temp_weightB));
+                    }
+                    Fracciones.push_back(((weights[i] - float((weights[i]*(temp_weightA) )/ float(temp_weightB)))/(midCase+1)));
                 }
-                for(int i = 0; i < midCase; i++) {
+
+                for(int i=0; i<midCase; i++){
                     for(int j=0;j<weights.size();j++){
-                        int tamp_temp = (((weights[j]-Fracciones[j])*float((i+1))/(midCase+1)));
-                        int desp_temp;
-                        if(A[it->second[j].first].first > B[it->second[0].second].first){
-                            desp_temp = PosicionesFinales[j] - (B[it->second[j].second].first - PosicionesFinales[j])*float((i+1))/(midCase+1)  ;
+                        if(i==0){
+                            matrizMidtams[i][j] =  float((weights[j]*(temp_weightA)) / float(temp_weightB)) ;
                         }
                         else{
-                            desp_temp = PosicionesFinales[j] + (B[it->second[j].second].first  - PosicionesFinales[j])*float((i+1))/(midCase+1);
-                        }
-                        if(weights.size() != (j-1)){
-                            pasos[i]->push_back(make_pair(desp_temp,desp_temp+tamp_temp));
-                        }
-                        else{
-                            pasos[i]->push_back(make_pair(desp_temp,B[it->second[j].second].second));
+                            matrizMidtams[i][j] = matrizMidtams[i-1][j]+Fracciones[j];
                         }
                     }
                 }
+
+                for(int i=0; i<midCase; i++ ){
+                    for(int j=0; j<weights.size();j++){
+                        if(PosicionesIniciales[j] < B[it->second[j].second].first){
+                            float temp = PosicionesIniciales[j] + float(B[it->second[j].second].first - PosicionesIniciales[j])*(i+1)/(midCase+1);
+                            pasos[i]->push_back(make_pair(temp,temp+matrizMidtams[i][j]));
+                            //cout<<"( "<<temp<<" - "<<temp+matrizMidtams[i][j]<<" )"<<endl;
+                        }
+                        else{
+                            float temp = PosicionesIniciales[j] - float(PosicionesIniciales[j] - B[it->second[j].second].first )*(i+1)/(midCase+1);
+                            pasos[i]->push_back(make_pair(temp,temp+matrizMidtams[i][j]));
+                            //cout<<"( "<<temp<<" - "<<temp+matrizMidtams[i][j]<<" )"<<endl;
+                        }
+                    }
+                }
+
             } else {
                 temp_weightB = (B[it->second[0].second].second-B[it->second[0].second].first)+1;
                 for(int i = 0; i < it->second.size(); i++) { // AGRUPAMIENTO
@@ -143,69 +156,80 @@ public:
                     weights.push_back(temp);
                     temp_weightA += temp;
                 }
-                vector<int> FraccionAcumulada;
-                vector<int> PosicionesFinales;
-                vector<int> Fracciones;
-                Fracciones.push_back(0);
-                FraccionAcumulada.push_back(0);
-                PosicionesFinales.push_back(B[it->second[0].second].first);
-                //Suma si A es menor que B fraccionesa acumuladas
-                //Restar si A es mayor que B fracciones acumuladas
-                for(int i=1;i<weights.size();i++){
-                    FraccionAcumulada.push_back(FraccionAcumulada[FraccionAcumulada.size() - 1] + (temp_weightB / temp_weightA) * weights[i - 1]);
-                    Fracciones.push_back((temp_weightB / temp_weightA) * weights[i - 1]);
-                    PosicionesFinales.push_back(B[it->second[0].second].first+FraccionAcumulada[i]);
+                cout<<temp_weightA<<";;;;;;;;;"<<temp_weightB<<endl;
+                vector<float> Fracciones;
+                vector<float> PosicionesIniciales(weights.size());
+                float matrizMidtams[midCase][weights.size()];
+
+                for(int i=0; i<weights.size();i++){
+                    if(i==0){
+                        PosicionesIniciales[i] = B[it->second[0].second].first;
+                        cout<<"0009999    "<<PosicionesIniciales[0]<<endl;
+                    }
+                    else{
+                        PosicionesIniciales[i] = PosicionesIniciales[i-1] + (float(weights[i-1]*(temp_weightB)) / float(temp_weightA));
+                    }
+
+                    Fracciones.push_back((float((weights[i]*(temp_weightB) / float(temp_weightA)) - weights[i])/(midCase+1)));
+
                 }
-                if(temp_weightA > temp_weightB) {
-                    for(int i = 0; i < midCase; i++) {
-                        for(int j=0;j<weights.size();j++){
-                            int tamp_temp = weights[j] - (((weights[j]-Fracciones[j])*float((i+1))/(midCase+1)));
-                            int desp_temp;
-                            if(A[it->second[j].first].first > B[it->second[0].second].first){
-                                desp_temp = A[it->second[j].first].first - (A[it->second[j].first].first - PosicionesFinales[j])*float((i+1))/(midCase+1);
-                            }
-                            else{
-                                desp_temp = A[it->second[j].first].first + (PosicionesFinales[j] - A[it->second[j].first].first)*float((i+1))/(midCase+1);
-                            }
-                            if(weights.size() != (j-1)){
-                                pasos[i]->push_back(make_pair(desp_temp,desp_temp+tamp_temp));
-                            }
-                            else{
-                                pasos[i]->push_back(make_pair(desp_temp,B[it->second[0].second].second));
-                            }
+
+                for(int i=0; i<midCase; i++){
+                    for(int j=0;j<weights.size();j++){
+                        if(i==0){
+                            matrizMidtams[i][j] = (float((weights[j]*(temp_weightB)) / float(temp_weightA)) - weights[j])   + Fracciones[j];
+                        }
+                        else{
+                            matrizMidtams[i][j] = matrizMidtams[i-1][j]+Fracciones[j];
                         }
                     }
                 }
-                else{
-                    for(int i = 0; i < midCase; i++) {
-                        for(int j=0;j<weights.size();j++){
-                            int tamp_temp = weights[j] + (((weights[j]-Fracciones[j])*float((i+1))/(midCase+1)));
-                            int desp_temp;
-                            if(A[it->second[j].first].first > B[it->second[0].second].first){
-                                desp_temp = A[it->second[j].first].first - (A[it->second[j].first].first - PosicionesFinales[j])*float((i+1))/(midCase+1);
-                            }
-                            else{
-                                desp_temp = A[it->second[j].first].first + (PosicionesFinales[j] - A[it->second[j].first].first)*float((i+1))/(midCase+1);
-                            }
-                            if(weights.size() != (j-1)){
-                                pasos[i]->push_back(make_pair(desp_temp,desp_temp+tamp_temp));
-                            }
-                            else{
-                                pasos[i]->push_back(make_pair(desp_temp,B[it->second[0].second].second));
-                            }
+
+                for(int i = 0; i < midCase; i++) {
+                    //newtuple.push_back(make_pair(12,23));
+                    for(int j=0;j<weights.size();j++){
+                        if(A[it->second[j].first].first > PosicionesIniciales[j]){
+                            float temp = A[it->second[j].first].first - (float(A[it->second[j].first].first - PosicionesIniciales[j]))*(i+1)/(midCase+1);
+                            pasos[i]->push_back(make_pair(temp,temp+matrizMidtams[i][j]));
                         }
+                        else {
+                            float temp = A[it->second[j].first].first +
+                                         float( PosicionesIniciales[j] - A[it->second[j].first].first) * (i + 1) /
+                                         (midCase + 1);
+                            pasos[i]->push_back(make_pair(temp, temp + matrizMidtams[i][j]));
+                        }
+
                     }
                 }
             }
         }
-        int i=1;
+
+        int j=0;
         for (auto val : pasos){
-            cout<<"VECTOR NUMERO "<<i<<endl;
+            cout<<"VECTOR NUMERO "<<j<<endl;
             for(auto par : *val){
                 cout<<"("<<par.first<<";"<<par.second<<") - ";
+                vector<int> temp(par.second-par.first+1,1);
+                copy(temp.begin(), temp.end(), midVectors[j].begin()+par.first);
             }
             cout<<"\n-----------"<<endl;
-            i++;
+            j++;
+        }/*
+        for(int i = 0; i < midVectors.size(); i++) {
+            for(int j = 0; j < midVectors[i].size(); j++) {
+                cout << midVectors[i][j] << " ";
+            }
+            cout << "\n";
+        }*/
+
+        for (int k = 0; k < midCase; k++) {
+            fstream fs;
+            string nombre = "dinamico" + to_string(k) + ".txt";
+            fs.open(nombre, ios::out | ios::app);
+            for(const auto&e : midVectors[k]) fs << e << " ";
+            fs << "\n";
+            fs.close();
         }
+
     }
 };
