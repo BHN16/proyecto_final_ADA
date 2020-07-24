@@ -22,9 +22,8 @@ private:
     Image A_image;
     Image B_image;
     Dynamic* dynamic_solution;
-    Greedy greedy_solution;
-    DynamicAverage dynamicAverage_solution;
-    int posicion = 0;
+    Greedy* greedy_solution;
+    DynamicAverage* dynamicAverage_solution;
 public:
     Matches(const string& imageA, const string& imageB, string method) {//el input de main.cpp es 2 strings con los nombres del archivo y una opcion para escoger el metodo de transformacion
         this->A_image.readFile(imageA);
@@ -43,20 +42,30 @@ public:
         this->dynamic_solution = new Dynamic();
         for(int i = 0; i < A_image.matrix.size(); i++) {
             auto response = this->dynamic_solution->dynamicSolution(A_image.weights[i].size()-1, B_image.weights[i].size()-1,&A_image.blocks[i], &B_image.blocks[i] ,&A_image.weights[i], &B_image.weights[i], &A_image.accumulated_weights[i], &B_image.accumulated_weights[i]);
-            cout << response << endl;
         }
         for(int i = 0; i < A_image.matrix.size(); i++) {
-            cout<<"Estoy en la iteracion "<<i<<endl;
-            this->transformationProcess((*dynamic_solution->matches)[i],this->A_image.blocks[i], this->B_image.blocks[i], A_image.matrix[0].size());
+            this->transformationProcess((*dynamic_solution->matches)[i],this->A_image.blocks[i], this->B_image.blocks[i], A_image.matrix[0].size(), "dinamico");
         }
     }
 
     void greedySolution() {
-        cout << "voraz\n";
+        this->greedy_solution = new Greedy();
+        for(int i = 0; i < A_image.matrix.size(); i++) {
+            this->greedy_solution->greedySolution(&A_image.blocks[i], &B_image.blocks[i] ,&A_image.weights[i], &B_image.weights[i], &A_image.accumulated_weights[i], &B_image.accumulated_weights[i]);
+        }
+        for(int i = 0; i < A_image.matrix.size(); i++) {
+            this->transformationProcess((*greedy_solution->matches)[i],this->A_image.blocks[i], this->B_image.blocks[i], A_image.matrix[0].size(), "voraz");
+        }
     }
 
     void dynamicAverageSolution() {
-        cout << "dinamico mejorado\n";
+        this->dynamicAverage_solution = new DynamicAverage();
+        for(int i = 0; i < A_image.matrix.size(); i++) {s
+            auto response = this->dynamicAverage_solution->dynamicAverageSolution(A_image.weights[i].size()-1, B_image.weights[i].size()-1,&A_image.blocks[i], &B_image.blocks[i] ,&A_image.weights[i], &B_image.weights[i], &A_image.accumulated_weights[i], &B_image.accumulated_weights[i]);
+        }
+        for(int i = 0; i < A_image.matrix.size(); i++) {
+            this->transformationProcess((*dynamicAverage_solution->matches)[i],this->A_image.blocks[i], this->B_image.blocks[i], A_image.matrix[0].size(), "dinamicoMejorado");
+        }
     }
 
 
