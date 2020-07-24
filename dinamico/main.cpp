@@ -710,7 +710,8 @@ int main() {
     cout << "hola\n";
     test.readFile();
     test.showBlocks();*/
-    Matches prueba("prueba.txt", "prueba2.txt", "1");
+    Matches prueba("matrizDibujo2.txt", "matrizDibujo1.txt", "1");
+	cout<<"HOLA QUE TAL"<<endl;
     return 0;
 }
 
